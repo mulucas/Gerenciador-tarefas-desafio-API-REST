@@ -2,21 +2,17 @@ package desafio.api.rest.repository;
 
 import java.util.List;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import desafio.api.rest.model.Pessoa;
 import desafio.api.rest.model.Tarefa;
 
 @Repository
-public interface TarefaRepository extends CrudRepository<Tarefa, Long>{
+public interface TarefaRepository extends JpaRepository<Tarefa, Long>{
 
-	@Query("SELECT t FROM Tarefa t WHERE t.pessoa IS NULL ORDER BY t.prazo ASC")
-    List<Tarefa> listaTopTresTarefasAntigasPrazo(Pageable pageable);
-	
-	@Query("SELECT AVG(t.duracao) FROM Tarefa t WHERE t.pessoa = :pessoa")
-    Double calcularMediaDuracaoPorPessoa(@Param("pessoa") Pessoa pessoa);
+	public List<Tarefa> findAllByTitulo(String titulo);
+
+	List<Tarefa> findByPessoaIsNull();
+
+	public Tarefa getById(long id);
 }

@@ -2,17 +2,17 @@ package desafio.api.rest.repository;
 
 import java.util.List;
 
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import desafio.api.rest.model.Pessoa;
 
 @Repository
-public interface PessoaRepository extends CrudRepository<Pessoa, Long>{
+public interface PessoaRepository extends JpaRepository<Pessoa, Long> {
 
-	@Query("SELECT p.departamento, COUNT(DISTINCT p.id), COUNT(t.id) FROM Pessoa p LEFT JOIN p.tarefas t GROUP BY p.departamento")
-    List<Object[]> contarPessoasTarefasPorDepartamento();
-    
-    List<Pessoa> findByNome(String nome);
+	public List<Pessoa> findAllByNome(String nome);
+
+	public List<Pessoa> findAllByNomeContainingIgnoreCase(String nome);
+
+	public Pessoa getById(long id);
 }

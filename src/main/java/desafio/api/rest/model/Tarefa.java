@@ -4,16 +4,17 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import java.time.LocalDate;
 
-import org.hibernate.annotations.ForeignKey;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 public class Tarefa {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	private String numero;
@@ -24,15 +25,31 @@ public class Tarefa {
 
 	private LocalDate prazo;
 
-	private String departamento;
-
 	private int duracao;
 
-	@ForeignKey(name = "pessoa_id")
+	private boolean finalizado;
+
 	@ManyToOne
+	@JsonIgnoreProperties({ "tarefa", "idDepartamento" })
+	@JoinColumn(name = "pessoa")
 	private Pessoa pessoa;
 
-	private boolean finalizado;
+	@ManyToOne
+	@JsonIgnoreProperties({ "tarefa", "pessoa" })
+	@JoinColumn(name = "idDepartamento")
+	private Departamento idDepartamento;
+
+	public Tarefa(String titulo, String descricao, LocalDate prazo, int duracao, Departamento departamento) {
+		this.titulo = titulo;
+		this.descricao = descricao;
+		this.prazo = prazo;
+		this.duracao = duracao;
+		this.idDepartamento = departamento;
+	}
+
+	public Tarefa() {
+		
+	}
 
 	public Long getId() {
 		return id;
@@ -74,12 +91,12 @@ public class Tarefa {
 		this.descricao = descricao;
 	}
 
-	public String getDepartamento() {
-		return departamento;
+	public Departamento getIdDepartamento() {
+		return idDepartamento;
 	}
 
-	public void setDepartamento(String departamento) {
-		this.departamento = departamento;
+	public void setIdDepartamento(Departamento idDepartamento) {
+		this.idDepartamento = idDepartamento;
 	}
 
 	public int getDuracao() {

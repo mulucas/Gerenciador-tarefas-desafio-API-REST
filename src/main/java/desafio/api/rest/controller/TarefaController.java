@@ -1,13 +1,13 @@
 package desafio.api.rest.controller;
 
+import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,69 +16,71 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import desafio.api.rest.model.Pessoa;
+import desafio.api.rest.dto.tarefa.TarefaDTO;
+import desafio.api.rest.dto.tarefa.TarefaIdDTO;
 import desafio.api.rest.model.Tarefa;
 import desafio.api.rest.repository.TarefaRepository;
+import desafio.api.rest.service.TarefaService;
 
 @RestController
-@RequestMapping(value = "/tarefas")
+@RequestMapping
 public class TarefaController {
+
+	@Autowired
+	private TarefaService tarefaService;
 
 	@Autowired
 	private TarefaRepository tarefaRepository;
 
-	@PostMapping(value = "/", produces = "application/json")
-	public ResponseEntity<Tarefa> adicionarTarefa(@RequestBody Tarefa tarefa) {
-
-		Tarefa tarefaSalva = tarefaRepository.save(tarefa);
-
-		return new ResponseEntity<Tarefa>(tarefaSalva, HttpStatus.OK);
-
+	// Cadastra	OK
+	@PostMapping("/post/tarefas")
+	public ResponseEntity<TarefaDTO> postTarefa(@RequestBody TarefaDTO dto) {
+		return tarefaService.postTarefa(dto).map(resp -> ResponseEntity.status(HttpStatus.CREATED).body(resp))
+				.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
 	}
 
-	@PutMapping(value = "/alocar/{id}", produces = "application/text")
-	public String alocarPessoaNaTarefa(@PathVariable("id") Long tarefaId, @RequestBody Pessoa pessoa) {
-		Optional<Tarefa> optionalTarefa = tarefaRepository.findById(tarefaId);
-		if (!optionalTarefa.isPresent()) {
-			return "Tarefa não encontrada.";
-		}
-
-		Tarefa tarefa = optionalTarefa.get();
-
-		if (!tarefa.getDepartamento().equals(pessoa.getDepartamento())) {
-			return "A tarefa e a pessoa não tem o mesmo departamento.";
-		}
-
-		tarefa.setPessoa(pessoa);
-		tarefaRepository.save(tarefa);
-
-		return "Tarefa alocada.";
+	// Edita
+	@PutMapping("/put/tarefas/{id}")
+	public ResponseEntity<Tarefa> putTarefa(@RequestBody TarefaDTO dto, @PathVariable("id") long id) {
+		return tarefaService.putTarefa(dto, id).map(resp -> ResponseEntity.status(HttpStatus.OK).body(resp))
+				.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
 	}
 
-	@PutMapping(value = "/finalizar/{id}", produces = "application/text")
-	public String finalizarTarefa(@PathVariable("id") Long id) {
-
-		Optional<Tarefa> optionalTarefa = tarefaRepository.findById(id);
-
-		if (optionalTarefa.isPresent()) {
-			Tarefa tarefa = optionalTarefa.get();
-			tarefa.setFinalizado(true);
-
-			tarefaRepository.save(tarefa);
-
-			return "Tarefa com o ID " + id + " finalizada";
-		} else {
-			return "Tarefa não encontrada com o ID: " + id;
-		}
-
+	// Exclui	OK
+	@DeleteMapping("/delete/tarefa/{id}")
+	public void deleteTarefa(@PathVariable("id") long id) {
+		tarefaRepository.deleteById(id);
 	}
 
-	@GetMapping(value = "/pendentes", produces = "application/json")
-	public ResponseEntity<List<Tarefa>> listaTopTresTarefasAntigas() {
-		Pageable pageable = PageRequest.of(0, 3);
-		List<Tarefa> tarefas = (List<Tarefa>) tarefaRepository.listaTopTresTarefasAntigasPrazo(pageable);
-
-		return new ResponseEntity<List<Tarefa>>(tarefas, HttpStatus.OK);
+	// Busca tarefas
+	@GetMapping("/get/tarefas/all")
+	public ResponseEntity<List<Tarefa>> getAll() {
+		return ResponseEntity.ok(tarefaService.findAll());
 	}
+
+	// Aloca uma pessoa na tarefa que tenha o mesmo departamento OK
+	@PutMapping("/put/tarefas/alocar/{id}")
+	public ResponseEntity<TarefaIdDTO> alocarPessoaTarefa(@RequestBody TarefaIdDTO alocarDTO,
+			@PathVariable("id") long id) {
+		return tarefaService.alocarPessoaTarefa(alocarDTO, id)
+				.map(resp -> ResponseEntity.status(HttpStatus.OK).body(resp))
+				.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	}
+
+	// Finaliza	OK
+	@PutMapping("/put/tarefas/finalizar/{id}")
+	public ResponseEntity<Long> finalizarTarefa(@PathVariable("id") long finalizarTarefa) {
+		return tarefaService.finalizarTarefa(finalizarTarefa)
+				.map(resp -> ResponseEntity.status(HttpStatus.OK).body(resp))
+				.orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	}
+	
+	//Lista 3 tarefas que estejam sem pessoa alocada com os prazos mais antigos. OK
+	@GetMapping("get/tarefas/pendentes")
+	public List<Tarefa> listarTarefasPendentesMaisAntigas() {
+        List<Tarefa> tarefasPendentes = tarefaRepository.findByPessoaIsNull();
+        tarefasPendentes.sort(Comparator.comparing(Tarefa::getPrazo));
+        return tarefasPendentes.stream().limit(3).collect(Collectors.toList());
+    }
 
 }
